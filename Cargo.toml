@@ -1,0 +1,11 @@
+[package]
+name = "mpileup"
+description = "Pile up multiple bam files site by site"
+version = "0.0.1"
+edition = "2018"
+authors = ["Ye Chang <yech1990@gmail.com>"]
+license = "MIT"
+
+[dependencies]
+rust-htslib = "0.36.0"
+bio-types = "0.11.0"
