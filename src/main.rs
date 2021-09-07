@@ -22,12 +22,23 @@ struct Opts {
 }
 
 #[derive(Clap)]
-#[clap(setting = AppSettings::ColoredHelp)]
 enum SubCommand {
     #[clap(version = "0.0.1", author = "Chang Ye <yech1990@gmail.com>")]
-    Base,
+    Base(Base),
     #[clap(version = "0.0.1", author = "Chang Ye <yech1990@gmail.com>")]
     Count(Count),
+}
+
+#[derive(Clap)]
+#[clap(setting = AppSettings::ColoredHelp)]
+struct Base {
+    #[clap(
+        short = 'i',
+        long = "input",
+        about = "input bam files..",
+        parse(from_os_str)
+    )]
+    bam: Vec<PathBuf>,
 }
 
 #[derive(Clap)]
@@ -63,13 +74,14 @@ fn main() {
     // You can handle information about subcommands by requesting their matches by name
     // (as below), requesting just the name used, or both at the same time
     match opts.subcmd {
-        SubCommand::Base => {
+        SubCommand::Base(o) => {
             println!("Printing debug info of base...");
-            base::run();
+            println!("{:?}", o.bam);
+            base::run(o.bam);
         }
-        SubCommand::Count(c) => {
+        SubCommand::Count(o) => {
             println!("Printing debug info of count...");
-            count::run(c.bed, c.bam, c.fa);
+            count::run(o.bed, o.bam, o.fa);
         }
     }
 }

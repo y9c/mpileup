@@ -1,7 +1,10 @@
 use bio_types::strand::ReqStrand;
 use rust_htslib::{bam, bam::Read};
-pub fn run() {
-    let mut bam = bam::Reader::from_path(&"test/sample1.bam").unwrap();
+use std::path::PathBuf;
+
+pub fn run(bam_path: Vec<PathBuf>) {
+    // test the 1st bam file
+    let mut bam = bam::Reader::from_path(&bam_path[0]).unwrap();
 
     // pileup over all covered sites
     for p in bam.pileup() {
