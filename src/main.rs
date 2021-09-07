@@ -1,5 +1,5 @@
+mod base;
 mod count;
-mod mpu;
 
 use clap::{AppSettings, Clap};
 use std::path::PathBuf;
@@ -25,7 +25,7 @@ struct Opts {
 #[clap(setting = AppSettings::ColoredHelp)]
 enum SubCommand {
     #[clap(version = "0.0.1", author = "Chang Ye <yech1990@gmail.com>")]
-    Mpileup,
+    Base,
     #[clap(version = "0.0.1", author = "Chang Ye <yech1990@gmail.com>")]
     Count(Count),
 }
@@ -63,9 +63,9 @@ fn main() {
     // You can handle information about subcommands by requesting their matches by name
     // (as below), requesting just the name used, or both at the same time
     match opts.subcmd {
-        SubCommand::Mpileup => {
-            println!("Printing debug info of mpileup...");
-            mpu::run();
+        SubCommand::Base => {
+            println!("Printing debug info of base...");
+            base::run();
         }
         SubCommand::Count(c) => {
             println!("Printing debug info of count...");
