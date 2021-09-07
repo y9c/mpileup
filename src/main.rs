@@ -1,8 +1,8 @@
 mod count;
-use bio_types::strand::ReqStrand;
-use rust_htslib::{bam, bam::Read};
+mod mpu;
 
 use clap::{AppSettings, Clap};
+use std::path::PathBuf;
 
 /// This doc string acts as a help message when the user runs '--help'
 /// as do all doc strings on fields
@@ -22,6 +22,7 @@ struct Opts {
 }
 
 #[derive(Clap)]
+#[clap(setting = AppSettings::ColoredHelp)]
 enum SubCommand {
     #[clap(version = "0.0.1", author = "Chang Ye <yech1990@gmail.com>")]
     Mpileup,
@@ -30,48 +31,19 @@ enum SubCommand {
 }
 
 #[derive(Clap)]
+#[clap(setting = AppSettings::ColoredHelp)]
 struct Count {
     #[clap(short, long, about = "debug")]
     debug: bool,
-    #[clap(short = 'r', long = "region", about = "input bed file..")]
-    bed: String,
     #[clap(short = 'i', long = "input", about = "input bam file..")]
-    bam: String,
+    bam: PathBuf,
+    #[clap(short = 't', long = "target", about = "input bed file..")]
+    bed: PathBuf,
+    #[clap(short = 'r', long = "reference", about = "input fa file..")]
+    fa: PathBuf,
 }
 
-/// A subcommand for controlling testing
-impl SubCommand {
-    /// Print debug info
-    fn run(&self) {
-        match self {
-            SubCommand::Mpileup => {
-                let mut bam = bam::Reader::from_path(&"test/sample1.bam").unwrap();
-
-                // pileup over all covered sites
-                for p in bam.pileup() {
-                    let pileup = p.unwrap();
-                    println!(
-                        "Site = {}:{}; depth = {}",
-                        pileup.tid(),
-                        pileup.pos(),
-                        pileup.depth()
-                    );
-
-                    for alignment in pileup.alignments() {
-                        if !alignment.is_del()
-                            && !alignment.is_refskip()
-                            && alignment.record().strand() == ReqStrand::Forward
-                        {
-                            let read_base = alignment.record().seq()[alignment.qpos().unwrap()];
-                            println!("Base {}", read_base);
-                        }
-                    }
-                }
-            }
-            SubCommand::Count(..) => {}
-        }
-    }
-}
+impl SubCommand {}
 
 fn main() {
     let opts: Opts = Opts::parse();
@@ -93,11 +65,11 @@ fn main() {
     match opts.subcmd {
         SubCommand::Mpileup => {
             println!("Printing debug info of mpileup...");
-            SubCommand::Mpileup.run();
+            mpu::run();
         }
         SubCommand::Count(c) => {
             println!("Printing debug info of count...");
-            count::do_count(c.bed, c.bam, "tes2".to_string());
+            count::run(c.bed, c.bam, c.fa);
         }
     }
 }
