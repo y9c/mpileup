@@ -32,6 +32,8 @@ enum SubCommand {
 #[derive(Clap)]
 #[clap(setting = AppSettings::ColoredHelp)]
 struct Base {
+    #[clap(short = 't', long = "target", about = "input bed file..")]
+    bed: PathBuf,
     #[clap(
         short = 'i',
         long = "input",
@@ -46,12 +48,12 @@ struct Base {
 struct Count {
     #[clap(short, long, about = "debug")]
     debug: bool,
-    #[clap(short = 'i', long = "input", about = "input bam file..")]
-    bam: PathBuf,
     #[clap(short = 't', long = "target", about = "input bed file..")]
     bed: PathBuf,
     #[clap(short = 'r', long = "reference", about = "input fa file..")]
     fa: PathBuf,
+    #[clap(short = 'i', long = "input", about = "input bam file..")]
+    bam: PathBuf,
 }
 
 impl SubCommand {}
@@ -76,12 +78,11 @@ fn main() {
     match opts.subcmd {
         SubCommand::Base(o) => {
             println!("Printing debug info of base...");
-            println!("{:?}", o.bam);
-            base::run(o.bam);
+            base::run(o.bed, o.bam);
         }
         SubCommand::Count(o) => {
             println!("Printing debug info of count...");
-            count::run(o.bed, o.bam, o.fa);
+            count::run(o.bed, o.fa, o.bam);
         }
     }
 }
