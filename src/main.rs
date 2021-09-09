@@ -38,6 +38,7 @@ struct Base {
         short = 'i',
         long = "input",
         about = "input bam files..",
+        required = true,
         parse(from_os_str)
     )]
     bam: Vec<PathBuf>,

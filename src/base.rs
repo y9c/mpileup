@@ -1,4 +1,3 @@
-use bio_types::strand::ReqStrand;
 use csv;
 use itertools::Itertools;
 use rust_htslib::bam::{self, Read};
@@ -15,20 +14,20 @@ struct PosRecord {
     end: u32,
 }
 
-fn complement_base_code(c: u8) -> u8 {
-    // A = 65, a = 97
-    // C = 67, c = 99
-    // G = 71, g = 103
-    // T = 84, t = 116
-    // U = 85, u = 117
-    match c {
-        65 | 97 | 85 | 117 => 84,
-        67 | 99 => 71,
-        71 | 103 => 67,
-        84 | 116 => 65,
-        _ => 78,
-    }
-}
+// fn complement_base_code(c: u8) -> u8 {
+//     // A = 65, a = 97
+//     // C = 67, c = 99
+//     // G = 71, g = 103
+//     // T = 84, t = 116
+//     // U = 85, u = 117
+//     match c {
+//         65 | 97 | 85 | 117 => 84,
+//         67 | 99 => 71,
+//         71 | 103 => 67,
+//         84 | 116 => 65,
+//         _ => 78,
+//     }
+// }
 
 pub fn run(
     region_path: PathBuf,
@@ -73,7 +72,8 @@ pub fn run(
             for p in bam_reader.pileup() {
                 let pileup = p.unwrap();
 
-                let mut base_list: Vec<u8> = Vec::new();
+                let mut base_list_fwd: Vec<u8> = Vec::new();
+                let mut base_list_rev: Vec<u8> = Vec::new();
                 let mut insertion_list: Vec<u32> = Vec::new();
                 let mut deletion_list: Vec<u32> = Vec::new();
                 let ref_pos = pileup.pos();
@@ -113,15 +113,19 @@ pub fn run(
 
                         if !alignment.is_del() && !alignment.is_refskip() {
                             total_reads += 1;
-                            if alignment.record().strand() == ReqStrand::Forward {
-                                let read_base = alignment.record().seq()[alignment.qpos().unwrap()];
-                                base_list.push(read_base);
-                            } else if alignment.record().strand() == ReqStrand::Reverse {
-                                let read_base = complement_base_code(
-                                    alignment.record().seq()[alignment.qpos().unwrap()],
-                                );
-                                println!("{}", read_base);
-                                base_list.push(read_base);
+                            let read_base = alignment.record().seq()[alignment.qpos().unwrap()];
+                            if alignment.record().flags() & 128 == 128 {
+                                if alignment.record().flags() & 16 == 16 {
+                                    base_list_fwd.push(read_base);
+                                } else {
+                                    base_list_rev.push(read_base);
+                                }
+                            } else {
+                                if alignment.record().flags() & 16 == 16 {
+                                    base_list_rev.push(read_base);
+                                } else {
+                                    base_list_fwd.push(read_base);
+                                }
                             }
                         }
                         match alignment.indel() {
@@ -137,13 +141,32 @@ pub fn run(
                     p2depth.insert((ref_pos, i), total_reads);
 
                     // let base_string = String::from_utf8(base_list.clone()).unwrap();
-                    let base_counter = dna_bases
+
+                    let mut base_counter = dna_bases
                         .clone()
                         .into_iter()
-                        .map(|b| base_list.iter().filter(|&x| *x == b).count().to_string())
-                        .collect::<Vec<_>>()
-                        .join(",");
-                    p2base.insert((ref_pos, i), base_counter);
+                        .map(|b| {
+                            base_list_fwd
+                                .iter()
+                                .filter(|&x| *x == b)
+                                .count()
+                                .to_string()
+                        })
+                        .collect::<Vec<_>>();
+                    base_counter.append(
+                        &mut dna_bases
+                            .clone()
+                            .into_iter()
+                            .map(|b| {
+                                base_list_rev
+                                    .iter()
+                                    .filter(|&x| *x == b)
+                                    .count()
+                                    .to_string()
+                            })
+                            .collect::<Vec<_>>(),
+                    );
+                    p2base.insert((ref_pos, i), base_counter.join(","));
 
                     if count_indel {
                         let insertion_counter = insertion_list
@@ -185,7 +208,7 @@ pub fn run(
                                 "{},{},{}",
                                 match p2base.get(&(p, x)) {
                                     Some(val) => val,
-                                    None => "0,0,0,0",
+                                    None => "0,0,0,0,0,0,0,0",
                                 },
                                 match p2ins.get(&(p, x)) {
                                     Some(val) => val,
@@ -199,7 +222,7 @@ pub fn run(
                         } else {
                             match p2base.get(&(p, x)) {
                                 Some(val) => val,
-                                None => "0,0,0,0",
+                                None => "0,0,0,0,0,0,0,0",
                             }
                             .to_string()
                         }
