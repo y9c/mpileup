@@ -2,6 +2,7 @@ use bio_types::strand::ReqStrand;
 use csv;
 use itertools::Itertools;
 use rust_htslib::bam::{self, Read};
+use rust_htslib::faidx;
 use serde::Deserialize;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -14,14 +15,33 @@ struct PosRecord {
     end: u32,
 }
 
+fn complement_base_code(c: u8) -> u8 {
+    // A = 65, a = 97
+    // C = 67, c = 99
+    // G = 71, g = 103
+    // T = 84, t = 116
+    // U = 85, u = 117
+    match c {
+        65 | 97 | 85 | 117 => 84,
+        67 | 99 => 71,
+        71 | 103 => 67,
+        84 | 116 => 65,
+        _ => 78,
+    }
+}
+
 pub fn run(
     region_path: PathBuf,
+    fasta_path: PathBuf,
     bam_path_list: Vec<PathBuf>,
     min_mean_depth: u32,
     count_indel: bool,
 ) {
     // A, C, G, T
     let dna_bases: Vec<u8> = vec![65, 67, 71, 84];
+
+    // read fasta file
+    let fa_reader = faidx::Reader::from_path(&fasta_path).unwrap();
 
     // read region file
     let mut pos_reader = csv::ReaderBuilder::new()
@@ -56,7 +76,8 @@ pub fn run(
                 let mut base_list: Vec<u8> = Vec::new();
                 let mut insertion_list: Vec<u32> = Vec::new();
                 let mut deletion_list: Vec<u32> = Vec::new();
-                if (start <= pileup.pos()) && (pileup.pos() < end) {
+                let ref_pos = pileup.pos();
+                if (start <= ref_pos) && (ref_pos < end) {
                     let mut total_reads = 0;
 
                     // for alignment in pileup.alignments() {
@@ -96,7 +117,10 @@ pub fn run(
                                 let read_base = alignment.record().seq()[alignment.qpos().unwrap()];
                                 base_list.push(read_base);
                             } else if alignment.record().strand() == ReqStrand::Reverse {
-                                let read_base = alignment.record().seq()[alignment.qpos().unwrap()];
+                                let read_base = complement_base_code(
+                                    alignment.record().seq()[alignment.qpos().unwrap()],
+                                );
+                                println!("{}", read_base);
                                 base_list.push(read_base);
                             }
                         }
@@ -110,7 +134,7 @@ pub fn run(
                             _ => {}
                         }
                     }
-                    p2depth.insert((pileup.pos(), i), total_reads);
+                    p2depth.insert((ref_pos, i), total_reads);
 
                     // let base_string = String::from_utf8(base_list.clone()).unwrap();
                     let base_counter = dna_bases
@@ -119,7 +143,7 @@ pub fn run(
                         .map(|b| base_list.iter().filter(|&x| *x == b).count().to_string())
                         .collect::<Vec<_>>()
                         .join(",");
-                    p2base.insert((pileup.pos(), i), base_counter);
+                    p2base.insert((ref_pos, i), base_counter);
 
                     if count_indel {
                         let insertion_counter = insertion_list
@@ -127,14 +151,14 @@ pub fn run(
                             .map(|x| x.to_string())
                             .collect::<Vec<_>>()
                             .join("|");
-                        p2ins.insert((pileup.pos(), i), insertion_counter);
+                        p2ins.insert((ref_pos, i), insertion_counter);
 
                         let deletion_counter = deletion_list
                             .into_iter()
                             .map(|x| x.to_string())
                             .collect::<Vec<_>>()
                             .join("|");
-                        p2del.insert((pileup.pos(), i), deletion_counter);
+                        p2del.insert((ref_pos, i), deletion_counter);
                     }
                 }
             }
@@ -148,8 +172,12 @@ pub fn run(
                     None => 0,
                 })
                 .sum();
+
+            let r = fa_reader
+                .fetch_seq_string(&record.chrom, p as usize, p as usize)
+                .unwrap();
             if (dep / bam_path_list.len() as u32) >= min_mean_depth {
-                print!("{}\t{}\t", record.chrom, p);
+                print!("{}\t{}\t{}\t", record.chrom, p, r);
                 let val = (0..bam_path_list.len())
                     .map(|x| {
                         if count_indel {
