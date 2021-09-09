@@ -1,10 +1,11 @@
 use bio_types::strand::ReqStrand;
 use csv;
+use itertools::Itertools;
 use rust_htslib::bam::{self, Read};
 use serde::Deserialize;
-use std::path::PathBuf;
-
+use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 #[derive(Deserialize, Debug)]
 struct PosRecord {
@@ -13,7 +14,12 @@ struct PosRecord {
     end: u32,
 }
 
-pub fn run(region_path: PathBuf, bam_path_list: Vec<PathBuf>, min_mean_depth: u32) {
+pub fn run(
+    region_path: PathBuf,
+    bam_path_list: Vec<PathBuf>,
+    min_mean_depth: u32,
+    count_indel: bool,
+) {
     // A, C, G, T
     let dna_bases: Vec<u8> = vec![65, 67, 71, 84];
 
@@ -47,14 +53,45 @@ pub fn run(region_path: PathBuf, bam_path_list: Vec<PathBuf>, min_mean_depth: u3
             for p in bam_reader.pileup() {
                 let pileup = p.unwrap();
 
-                p2depth.insert((pileup.pos(), i), pileup.depth());
-
                 let mut base_list: Vec<u8> = Vec::new();
                 let mut insertion_list: Vec<u32> = Vec::new();
                 let mut deletion_list: Vec<u32> = Vec::new();
                 if (start <= pileup.pos()) && (pileup.pos() < end) {
-                    for alignment in pileup.alignments() {
+                    let mut total_reads = 0;
+
+                    // for alignment in pileup.alignments() {
+                    // TODO: pick by quality
+                    // START: group by qname
+                    let grouped_by_qname = pileup
+                        .alignments()
+                        .map(|aln| {
+                            let record = aln.record();
+                            (aln, record)
+                        })
+                        .sorted_by(|a, b| Ord::cmp(a.1.qname(), b.1.qname()))
+                        .group_by(|a| a.1.qname().to_owned());
+
+                    for (_qname, reads) in grouped_by_qname.into_iter() {
+                        let (alignment, _record) = reads
+                            .into_iter()
+                            .max_by(|a, b| match a.1.mapq().cmp(&b.1.mapq()) {
+                                Ordering::Greater => Ordering::Greater,
+                                Ordering::Less => Ordering::Less,
+                                Ordering::Equal => {
+                                    if a.1.flags() & 64 == 0 {
+                                        Ordering::Greater
+                                    } else if b.1.flags() & 64 == 0 {
+                                        Ordering::Less
+                                    } else {
+                                        Ordering::Greater
+                                    }
+                                }
+                            })
+                            .unwrap();
+                        // END: group by qname
+
                         if !alignment.is_del() && !alignment.is_refskip() {
+                            total_reads += 1;
                             if alignment.record().strand() == ReqStrand::Forward {
                                 let read_base = alignment.record().seq()[alignment.qpos().unwrap()];
                                 base_list.push(read_base);
@@ -73,6 +110,7 @@ pub fn run(region_path: PathBuf, bam_path_list: Vec<PathBuf>, min_mean_depth: u3
                             _ => {}
                         }
                     }
+                    p2depth.insert((pileup.pos(), i), total_reads);
 
                     // let base_string = String::from_utf8(base_list.clone()).unwrap();
                     let base_counter = dna_bases
@@ -83,19 +121,21 @@ pub fn run(region_path: PathBuf, bam_path_list: Vec<PathBuf>, min_mean_depth: u3
                         .join(",");
                     p2base.insert((pileup.pos(), i), base_counter);
 
-                    let insertion_counter = insertion_list
-                        .into_iter()
-                        .map(|x| x.to_string())
-                        .collect::<Vec<_>>()
-                        .join("|");
-                    p2ins.insert((pileup.pos(), i), insertion_counter);
+                    if count_indel {
+                        let insertion_counter = insertion_list
+                            .into_iter()
+                            .map(|x| x.to_string())
+                            .collect::<Vec<_>>()
+                            .join("|");
+                        p2ins.insert((pileup.pos(), i), insertion_counter);
 
-                    let deletion_counter = deletion_list
-                        .into_iter()
-                        .map(|x| x.to_string())
-                        .collect::<Vec<_>>()
-                        .join("|");
-                    p2del.insert((pileup.pos(), i), deletion_counter);
+                        let deletion_counter = deletion_list
+                            .into_iter()
+                            .map(|x| x.to_string())
+                            .collect::<Vec<_>>()
+                            .join("|");
+                        p2del.insert((pileup.pos(), i), deletion_counter);
+                    }
                 }
             }
         }
@@ -108,33 +148,39 @@ pub fn run(region_path: PathBuf, bam_path_list: Vec<PathBuf>, min_mean_depth: u3
                     None => 0,
                 })
                 .sum();
-            if (dep / bam_path_list.len() as u32) < min_mean_depth {
-                break;
-            }
-
-            print!("{}\t{}\t", record.chrom, p);
-            let val = (0..bam_path_list.len())
-                .map(|x| {
-                    format!(
-                        "{},{},{}",
-                        match p2base.get(&(p, x)) {
-                            Some(val) => val,
-                            None => "0,0,0,0",
-                        },
-                        match p2ins.get(&(p, x)) {
-                            Some(val) => val,
-                            None => "",
-                        },
-                        match p2del.get(&(p, x)) {
-                            Some(val) => val,
-                            None => "",
+            if (dep / bam_path_list.len() as u32) >= min_mean_depth {
+                print!("{}\t{}\t", record.chrom, p);
+                let val = (0..bam_path_list.len())
+                    .map(|x| {
+                        if count_indel {
+                            format!(
+                                "{},{},{}",
+                                match p2base.get(&(p, x)) {
+                                    Some(val) => val,
+                                    None => "0,0,0,0",
+                                },
+                                match p2ins.get(&(p, x)) {
+                                    Some(val) => val,
+                                    None => "",
+                                },
+                                match p2del.get(&(p, x)) {
+                                    Some(val) => val,
+                                    None => "",
+                                }
+                            )
+                        } else {
+                            match p2base.get(&(p, x)) {
+                                Some(val) => val,
+                                None => "0,0,0,0",
+                            }
+                            .to_string()
                         }
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join("\t");
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\t");
 
-            println!("{}", val);
+                println!("{}", val);
+            }
         }
     }
 }

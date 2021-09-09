@@ -28,6 +28,8 @@ enum SubCommand {
 #[derive(Clap)]
 #[clap(setting = AppSettings::ColoredHelp)]
 struct Base {
+    #[clap(short = 'g', long = "count-indel", about = "Count indel?")]
+    indel: bool,
     #[clap(short = 't', long = "target", about = "input bed file..")]
     bed: PathBuf,
     #[clap(
@@ -77,7 +79,7 @@ fn main() {
     // (as below), requesting just the name used, or both at the same time
     match opts.subcmd {
         SubCommand::Base(o) => {
-            base::run(o.bed, o.bam, o.depth);
+            base::run(o.bed, o.bam, o.depth, o.indel);
         }
         SubCommand::Count(o) => {
             count::run(o.bed, o.fa, o.bam);
