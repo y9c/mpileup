@@ -7,7 +7,7 @@ use std::path::PathBuf;
 /// This doc string acts as a help message when the user runs '--help'
 /// as do all doc strings on fields
 #[derive(Clap)]
-#[clap(version = "0.0.1", author = "Chang Ye <yech1990@gmail.com>")]
+#[clap(version = "0.0.2", author = "Chang Ye <yech1990@gmail.com>")]
 #[clap(setting = AppSettings::ColoredHelp)]
 struct Opts {
     /// A level of verbosity, and can be used multiple times
@@ -19,9 +19,7 @@ struct Opts {
 
 #[derive(Clap)]
 enum SubCommand {
-    #[clap(version = "0.0.1", author = "Chang Ye <yech1990@gmail.com>")]
     Base(Base),
-    #[clap(version = "0.0.1", author = "Chang Ye <yech1990@gmail.com>")]
     Count(Count),
 }
 
