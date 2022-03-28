@@ -30,11 +30,11 @@ mpileup count --target test/region.bed --reference test/reference.fa --input tes
 
 In this subcommand (example),
 
-- only support one file in a time
+- only support one file a time
 
 ## TODO
 
-- suport sam flag filtering
+- support sam flag filtering
 - support trimming read ends
 - remove duplicate by UMI on qname
 - group the result by customized tag (such as cell barcode)
