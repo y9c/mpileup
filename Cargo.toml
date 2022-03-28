@@ -1,7 +1,7 @@
 [package]
 name = "mpileup"
 description = "Pile up multiple bam files site by site"
-version = "0.0.1"
+version = "0.0.3"
 edition = "2018"
 authors = ["Ye Chang <yech1990@gmail.com>"]
 license = "MIT"

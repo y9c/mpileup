@@ -15,11 +15,11 @@ struct PosRecord {
     end: u32,
 }
 
-pub fn run(region_path: PathBuf, bam_path: PathBuf, fasta_path: PathBuf) {
+pub fn run(region_path: PathBuf, fasta_path: PathBuf, bam_path: PathBuf) {
     let fa_reader = faidx::Reader::from_path(&fasta_path).unwrap();
 
     let mut pos_reader = csv::ReaderBuilder::new()
-        .has_headers(true)
+        .has_headers(false)
         .delimiter(b'\t')
         .from_path(&region_path)
         .unwrap();
