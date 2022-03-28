@@ -1,14 +1,11 @@
 mod base;
 mod count;
 
-use clap::{AppSettings, Clap};
+use clap::Parser;
 use std::path::PathBuf;
 
-/// This doc string acts as a help message when the user runs '--help'
-/// as do all doc strings on fields
-#[derive(Clap)]
-#[clap(version = "0.0.2", author = "Chang Ye <yech1990@gmail.com>")]
-#[clap(setting = AppSettings::ColoredHelp)]
+#[derive(Parser)]
+#[clap(about, version, author)]
 struct Opts {
     /// A level of verbosity, and can be used multiple times
     #[clap(short, long, parse(from_occurrences))]
@@ -17,25 +14,24 @@ struct Opts {
     subcmd: SubCommand,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum SubCommand {
     Base(Base),
     Count(Count),
 }
 
-#[derive(Clap)]
-#[clap(setting = AppSettings::ColoredHelp)]
+#[derive(Parser)]
 struct Base {
-    #[clap(short = 'g', long = "count-indel", about = "Count indel?")]
+    #[clap(short = 'g', long = "count-indel", help = "Count indel?")]
     indel: bool,
-    #[clap(short = 't', long = "target", about = "input bed file..")]
+    #[clap(short = 't', long = "target", help = "input bed file..")]
     bed: PathBuf,
-    #[clap(short = 'r', long = "reference", about = "input fa file..")]
+    #[clap(short = 'r', long = "reference", help = "input fa file..")]
     fa: PathBuf,
     #[clap(
         short = 'i',
         long = "input",
-        about = "input bam files..",
+        help = "input bam files..",
         required = true,
         parse(from_os_str)
     )]
@@ -43,22 +39,21 @@ struct Base {
     #[clap(
         short = 'd',
         long = "min-depth",
-        about = "Set min mean depth for output",
+        help = "Set min mean depth for output",
         default_value = "0"
     )]
     depth: u32,
 }
 
-#[derive(Clap)]
-#[clap(setting = AppSettings::ColoredHelp)]
+#[derive(Parser)]
 struct Count {
-    #[clap(short, long, about = "debug")]
+    #[clap(short, long, help = "debug")]
     debug: bool,
-    #[clap(short = 't', long = "target", about = "input bed file..")]
+    #[clap(short = 't', long = "target", help = "input bed file..")]
     bed: PathBuf,
-    #[clap(short = 'r', long = "reference", about = "input fa file..")]
+    #[clap(short = 'r', long = "reference", help = "input fa file..")]
     fa: PathBuf,
-    #[clap(short = 'i', long = "input", about = "input bam file..")]
+    #[clap(short = 'i', long = "input", help = "input bam file..")]
     bam: PathBuf,
 }
 
