@@ -229,7 +229,7 @@ fn parse_region(
                     vec![rec.join(",")]
                 } else if by_strand {
                     let mut rec = match p2base.get(&(p, x)) {
-                        Some((v1, v2)) => vec![v1.iter().join(","), v2.iter().join(",")],
+                        Some((v1, v2)) => vec![v1.iter().join(","), v2.iter().rev().join(",")],
                         None => vec!["0,0,0,0".to_string(), "0,0,0,0".to_string()],
                     };
                     if count_indel {
