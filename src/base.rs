@@ -139,13 +139,11 @@ pub fn run(
                         if !alignment.is_del() && !alignment.is_refskip() {
                             let read_base = alignment.record().seq()[alignment.qpos().unwrap()];
                             if strand == '+' {
-                                base_list_fwd.push(read_base);
                                 total_reads_fwd += 1;
+                                base_list_fwd.push(read_base);
                             } else if strand == '-' {
-                                base_list_rev.push(read_base);
                                 total_reads_rev += 1;
-                            } else {
-                                print!("");
+                                base_list_rev.push(read_base);
                             }
                         }
                         if count_indel {
@@ -249,7 +247,7 @@ pub fn run(
                         }
                         vec![
                             rec.iter().step_by(2).join(","),
-                            rec.iter().step_by(2).join(","),
+                            rec.iter().skip(1).step_by(2).join(","),
                         ]
                     } else {
                         let mut rec = vec![match p2base.get(&(p, x)) {
