@@ -344,7 +344,7 @@ pub fn run(
     min_depth: u32,
     min_qual: u8,
     count_indel: bool,
-    with_header: bool,
+    without_header: bool,
     ignore_strand: bool,
     by_strand: bool,
     n_jobs: usize,
@@ -369,7 +369,7 @@ pub fn run(
         .from_path(&region_path)
         .unwrap();
 
-    if with_header {
+    if !without_header {
         print!("Chrom\tPos\tStrand\tRef");
         for pth in &bam_path_list {
             print!("\t{}", pth.to_str().unwrap().to_string())

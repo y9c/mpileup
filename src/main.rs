@@ -51,8 +51,12 @@ struct Base {
         default_value = "0"
     )]
     qual: u8,
-    #[clap(short = 'w', long = "with-header", help = "Write header in the output")]
-    header: bool,
+    #[clap(
+        short = 'H',
+        long = "headless",
+        help = "Write without header in the output"
+    )]
+    headless: bool,
     #[clap(
         short = 'S',
         long = "strandless",
@@ -111,7 +115,7 @@ fn main() {
                 o.depth,
                 o.qual,
                 o.indel,
-                o.header,
+                o.headless,
                 o.strandless,
                 o.bystrand,
                 o.njobs,
