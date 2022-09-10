@@ -58,6 +58,13 @@ struct Base {
         help = "Split counts into different rows by strand"
     )]
     bystrand: bool,
+    #[clap(
+        short = 'j',
+        long = "--threads",
+        default_value = "8",
+        help = "Start the job in multiple threads"
+    )]
+    njobs: usize,
 }
 
 #[derive(Parser)]
@@ -99,6 +106,7 @@ fn main() {
                 o.header,
                 o.strandless,
                 o.bystrand,
+                o.njobs,
             );
         }
         SubCommand::Count(o) => {

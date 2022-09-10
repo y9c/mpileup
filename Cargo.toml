@@ -1,7 +1,7 @@
 [package]
 name = "mpileup"
 description = "Pile up multiple bam files site by site"
-version = "0.0.11"
+version = "0.0.12"
 edition = "2021"
 authors = ["Ye Chang <yech1990@gmail.com>"]
 license = "MIT"
@@ -15,3 +15,4 @@ csv = "1.1"
 chrono = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 itertools = "0.10.1"
+rayon = "1.5.3"

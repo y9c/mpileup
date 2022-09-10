@@ -1,5 +1,6 @@
 use csv;
 use itertools::Itertools;
+use rayon::prelude::*;
 use rust_htslib::bam::{self, Read};
 use rust_htslib::faidx;
 use serde::Deserialize;
@@ -42,8 +43,15 @@ fn complement_base_code(c: u8) -> u8 {
     }
 }
 
+fn build_thread_pool(j: usize) {
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(j)
+        .build_global()
+        .unwrap();
+}
+
 fn parse_region(
-    chrom: &String,
+    chrom: String,
     start: u32,
     end: u32,
     dna_bases: &Vec<u8>,
@@ -333,6 +341,7 @@ pub fn run(
     with_header: bool,
     ignore_strand: bool,
     by_strand: bool,
+    n_jobs: usize,
 ) {
     // check parameters
     if by_strand & ignore_strand {
@@ -340,12 +349,12 @@ pub fn run(
         std::process::exit(1);
     }
 
-    let chunk_size = 1000;
+    let chunk_size = 10000;
     // A, C, G, T
     let dna_bases = &vec![65, 67, 71, 84];
 
     // read fasta file
-    let fa_reader = &faidx::Reader::from_path(&fasta_path).unwrap();
+    // let fa_reader = &faidx::Reader::from_path(&fasta_path).unwrap();
 
     // read region file
     let mut pos_reader = csv::ReaderBuilder::new()
@@ -362,33 +371,40 @@ pub fn run(
         print!("\n");
     }
     // Read through all records in region.
+    let mut spans: Vec<(String, u32, u32)> = Vec::new();
     for (_i, record) in pos_reader.deserialize().enumerate() {
         let record: PosRecord = record.unwrap();
-        let chrom: &String = &record.chrom;
+        let chrom: String = record.chrom.clone();
         let start = record.start as u32;
         let end = record.end as u32;
 
         // split into chunks
-        let mut spans: Vec<(u32, u32)> = Vec::new();
         let mut splited_start = start;
         for _ in 1..(end - start) / chunk_size {
             splited_start = splited_start + chunk_size;
-            spans.push((splited_start, splited_start + chunk_size));
+            spans.push((chrom.clone(), splited_start, splited_start + chunk_size));
         }
-        spans.push((splited_start, end));
-        for (s, e) in spans {
+        spans.push((chrom.clone(), splited_start, end));
+    }
+    build_thread_pool(n_jobs);
+    let _chunks: _ = spans
+        .par_iter()
+        .cloned()
+        .map(|(c, s, e)| {
             parse_region(
-                &chrom,
+                c,
                 s,
                 e,
                 dna_bases,
-                fa_reader,
+                //fa_reader,
+                &faidx::Reader::from_path(&fasta_path).unwrap(),
                 &bam_path_list,
                 min_depth,
                 count_indel,
                 ignore_strand,
                 by_strand,
             );
-        }
-    }
+            1
+        })
+        .sum::<i32>();
 }
