@@ -36,7 +36,7 @@ In this subcommand (example),
 
 - only support one file a time
 
-## DOC
+## Documentation
 
 [Read more](https://docs.rs/crate/mpileup/latest)
 
