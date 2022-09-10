@@ -1,3 +1,7 @@
+[![Crates.io](https://img.shields.io/crates/d/mpileup.svg)](https://crates.io/crates/mpileup)
+[![Crates.io](https://img.shields.io/crates/v/mpileup.svg)](https://crates.io/crates/mpileup)
+[![docs.rs](https://docs.rs/mpileup/badge.svg)](https://docs.rs/mpileup)
+
 # mpileup
 
 ## Install
@@ -31,6 +35,10 @@ mpileup count --target test/region.bed --reference test/reference.fa --input tes
 In this subcommand (example),
 
 - only support one file a time
+
+## DOC
+
+[Read more](https://docs.rs/crate/mpileup/latest)
 
 ## TODO
 
