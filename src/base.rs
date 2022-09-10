@@ -327,7 +327,7 @@ pub fn run(
         std::process::exit(1);
     }
 
-    let chunk_size = 51;
+    let chunk_size = 1000;
     // A, C, G, T
     let dna_bases = &vec![65, 67, 71, 84];
 
