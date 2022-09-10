@@ -55,7 +55,7 @@ fn parse_region(
     start: u32,
     end: u32,
     dna_bases: &Vec<u8>,
-    fa_reader: &faidx::Reader,
+    fasta_path: &PathBuf,
     bam_path_list: &Vec<PathBuf>,
     min_depth: u32,
     min_qual: u8,
@@ -197,6 +197,13 @@ fn parse_region(
         }
     }
 
+    // read fasta file
+    let fa_reader = &faidx::Reader::from_path(&fasta_path).unwrap();
+    // input bed format is [start, end), but fa_reader is [start, end]
+    let fa_string = fa_reader
+        .fetch_seq_string(&chrom, start as usize, (end - 1) as usize)
+        .unwrap();
+
     for p in start..end {
         let rec_list = (0..bam_path_list.len())
             .map(|x| {
@@ -272,9 +279,7 @@ fn parse_region(
             })
             .collect::<Vec<_>>();
 
-        let r = fa_reader
-            .fetch_seq_string(&chrom, p as usize, p as usize)
-            .unwrap();
+        let r = &fa_string[(p - start) as usize..(p - start + 1) as usize];
         if ignore_strand {
             // filter depth
             let passed_filter = (0..bam_path_list.len())
@@ -359,9 +364,6 @@ pub fn run(
     // A, C, G, T
     let dna_bases = &vec![65, 67, 71, 84];
 
-    // read fasta file
-    // let fa_reader = &faidx::Reader::from_path(&fasta_path).unwrap();
-
     // read region file
     let mut pos_reader = csv::ReaderBuilder::new()
         .has_headers(false)
@@ -392,6 +394,8 @@ pub fn run(
         }
         spans.push((chrom.clone(), splited_start, end));
     }
+
+    // run in parallel
     build_thread_pool(n_jobs);
     let _chunks: _ = spans
         .par_iter()
@@ -402,8 +406,7 @@ pub fn run(
                 s,
                 e,
                 dna_bases,
-                //fa_reader,
-                &faidx::Reader::from_path(&fasta_path).unwrap(),
+                &fasta_path,
                 &bam_path_list,
                 min_depth,
                 min_qual,
