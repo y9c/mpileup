@@ -282,7 +282,7 @@ fn parse_region(
                 >= min_depth;
             if passed_filter {
                 let val = rec_list.iter().map(|x| &x[0]).join("\t");
-                println!("{}\t{}\t{}\t{}\t{}", chrom, p, '.', r, val);
+                println!("{}\t{}\t{}\t{}\t{}", chrom, p + 1, '.', r, val);
             }
         } else if by_strand {
             let passed_filter = (0..bam_path_list.len())
@@ -295,7 +295,7 @@ fn parse_region(
                 >= min_depth;
             if passed_filter {
                 let val = rec_list.iter().map(|x| &x[0]).join("\t");
-                println!("{}\t{}\t{}\t{}\t{}", chrom, p, "+", r, val);
+                println!("{}\t{}\t{}\t{}\t{}", chrom, p + 1, "+", r, val);
             }
             let passed_filter = (0..bam_path_list.len())
                 .map(|x| match p2depth.get(&(p, x)) {
@@ -310,7 +310,7 @@ fn parse_region(
                 println!(
                     "{}\t{}\t{}\t{}\t{}",
                     chrom,
-                    p,
+                    p + 1,
                     "-",
                     complement_base_code(r.as_bytes()[0]) as char,
                     val
@@ -327,7 +327,7 @@ fn parse_region(
                 >= min_depth;
             if passed_filter {
                 let val = rec_list.iter().map(|x| &x[0]).join("\t");
-                println!("{}\t{}\t{}\t{}\t{}", chrom, p, "+/-", r, val);
+                println!("{}\t{}\t{}\t{}\t{}", chrom, p + 1, "+/-", r, val);
             }
         }
     }
