@@ -347,6 +347,7 @@ pub fn run(
     without_header: bool,
     ignore_strand: bool,
     by_strand: bool,
+    chunk_size: u32,
     n_jobs: usize,
 ) {
     // check parameters
@@ -355,7 +356,6 @@ pub fn run(
         std::process::exit(1);
     }
 
-    let chunk_size = 10000;
     // A, C, G, T
     let dna_bases = &vec![65, 67, 71, 84];
 

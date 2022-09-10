@@ -70,6 +70,13 @@ struct Base {
     )]
     bystrand: bool,
     #[clap(
+        short = 'c',
+        long = "--chunk-size",
+        default_value = "8",
+        help = "Start the job in multiple threads"
+    )]
+    chunk: u32,
+    #[clap(
         short = 'j',
         long = "--threads",
         default_value = "8",
@@ -118,6 +125,7 @@ fn main() {
                 o.headless,
                 o.strandless,
                 o.bystrand,
+                o.chunk,
                 o.njobs,
             );
         }
