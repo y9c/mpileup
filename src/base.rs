@@ -58,6 +58,7 @@ fn parse_region(
     fa_reader: &faidx::Reader,
     bam_path_list: &Vec<PathBuf>,
     min_depth: u32,
+    min_qual: u8,
     count_indel: bool,
     ignore_strand: bool,
     by_strand: bool,
@@ -137,15 +138,19 @@ fn parse_region(
 
                     if !alignment.is_del() && !alignment.is_refskip() {
                         let read_base = alignment.record().seq()[alignment.qpos().unwrap()];
-                        if strand == '+' {
-                            total_reads_fwd += 1;
-                            base_list_fwd.push(read_base);
-                        } else if strand == '-' {
-                            total_reads_rev += 1;
-                            base_list_rev.push(read_base);
+                        let read_qual = alignment.record().seq()[alignment.qpos().unwrap()];
+                        if read_qual >= min_qual {
+                            if strand == '+' {
+                                total_reads_fwd += 1;
+                                base_list_fwd.push(read_base);
+                            } else if strand == '-' {
+                                total_reads_rev += 1;
+                                base_list_rev.push(read_base);
+                            }
                         }
                     }
                     if count_indel {
+                        // TODO: filter indel with nearby qual?
                         match alignment.indel() {
                             bam::pileup::Indel::Ins(len) => {
                                 if strand == '+' {
@@ -337,6 +342,7 @@ pub fn run(
     fasta_path: PathBuf,
     bam_path_list: Vec<PathBuf>,
     min_depth: u32,
+    min_qual: u8,
     count_indel: bool,
     with_header: bool,
     ignore_strand: bool,
@@ -400,6 +406,7 @@ pub fn run(
                 &faidx::Reader::from_path(&fasta_path).unwrap(),
                 &bam_path_list,
                 min_depth,
+                min_qual,
                 count_indel,
                 ignore_strand,
                 by_strand,

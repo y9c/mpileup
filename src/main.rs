@@ -44,6 +44,13 @@ struct Base {
         default_value = "0"
     )]
     depth: u32,
+    #[clap(
+        short = 'q',
+        long = "min-qual",
+        help = "Set min quality for base. (greater or equal to)",
+        default_value = "0"
+    )]
+    qual: u8,
     #[clap(short = 'w', long = "with-header", help = "Write header in the output")]
     header: bool,
     #[clap(
@@ -102,6 +109,7 @@ fn main() {
                 o.fa,
                 o.bam,
                 o.depth,
+                o.qual,
                 o.indel,
                 o.header,
                 o.strandless,
