@@ -503,7 +503,7 @@ dependencies = [
 
 [[package]]
 name = "mpileup"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "bio-types 0.11.0",
  "chrono",
