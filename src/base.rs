@@ -138,7 +138,7 @@ fn parse_region(
 
                     if !alignment.is_del() && !alignment.is_refskip() {
                         let read_base = alignment.record().seq()[alignment.qpos().unwrap()];
-                        let read_qual = alignment.record().seq()[alignment.qpos().unwrap()];
+                        let read_qual = alignment.record().qual()[alignment.qpos().unwrap()];
                         if read_qual >= min_qual {
                             if strand == '+' {
                                 total_reads_fwd += 1;
