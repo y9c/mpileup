@@ -24,9 +24,9 @@ enum SubCommand {
 struct Base {
     #[clap(short = 'g', long = "count-indel", help = "Count indel?")]
     indel: bool,
-    #[clap(short = 't', long = "target", help = "input bed file..")]
+    #[clap(short = 't', long = "target", help = "input bed file..", validator = file_path_validation)]
     bed: PathBuf,
-    #[clap(short = 'r', long = "reference", help = "input fa file..")]
+    #[clap(short = 'r', long = "reference", help = "input fa file..", validator = file_path_validation)]
     fa: PathBuf,
     #[clap(
         short = 'i',
