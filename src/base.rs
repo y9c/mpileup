@@ -385,12 +385,11 @@ pub fn run(
         let chrom: String = record.chrom.clone();
         let start = record.start as u32;
         let end = record.end as u32;
-
         // split into chunks
         let mut splited_start = start;
         for _ in 1..(end - start) / chunk_size {
-            splited_start = splited_start + chunk_size;
             spans.push((chrom.clone(), splited_start, splited_start + chunk_size));
+            splited_start = splited_start + chunk_size;
         }
         spans.push((chrom.clone(), splited_start, end));
     }
