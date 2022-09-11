@@ -61,6 +61,7 @@ fn parse_region(
     bam_path_list: &Vec<PathBuf>,
     mut ouput_handle: &std::io::Stdout,
     min_depth: u32,
+    mean_depth: u32,
     min_qual: u8,
     count_indel: bool,
     ignore_strand: bool,
@@ -287,42 +288,35 @@ fn parse_region(
         let r = &fa_string[(p - start) as usize..(p - start + 1) as usize];
         if ignore_strand {
             // filter depth
-            let passed_filter = (0..n_samples)
-                .map(|x| match p2depth.get(&(p, x)) {
-                    Some(val) => (*val).0 + (*val).1,
-                    None => 0,
-                })
-                .max()
-                .unwrap()
-                >= min_depth;
-            if passed_filter {
+            let depth_stat = (0..n_samples).map(|x| match p2depth.get(&(p, x)) {
+                Some(val) => (*val).0 + (*val).1,
+                None => 0,
+            });
+            if (depth_stat.clone().max().unwrap() >= min_depth)
+                & (depth_stat.clone().sum::<u32>() >= mean_depth * n_samples as u32)
+            {
                 let val = rec_list.iter().map(|x| &x[0]).join("\t");
                 output_report += &format!("{}\t{}\t{}\t{}\t{}\n", chrom, p + 1, '.', r, val);
             }
         } else if by_strand {
-            let passed_filter = (0..n_samples)
-                .map(|x| match p2depth.get(&(p, x)) {
-                    Some(val) => (*val).0,
-                    None => 0,
-                })
-                .max()
-                .unwrap()
-                >= min_depth;
-            if passed_filter {
+            let depth_stat = (0..n_samples).map(|x| match p2depth.get(&(p, x)) {
+                Some(val) => (*val).0,
+                None => 0,
+            });
+            if (depth_stat.clone().max().unwrap() >= min_depth)
+                & (depth_stat.clone().sum::<u32>() >= mean_depth * n_samples as u32)
+            {
                 let val = rec_list.iter().map(|x| &x[0]).join("\t");
                 output_report += &format!("{}\t{}\t{}\t{}\t{}\n", chrom, p + 1, "+", r, val);
             }
-            let passed_filter = (0..n_samples)
-                .map(|x| match p2depth.get(&(p, x)) {
-                    Some(val) => (*val).1,
-                    None => 0,
-                })
-                .max()
-                .unwrap()
-                >= min_depth;
-            if passed_filter {
+            let depth_stat = (0..n_samples).map(|x| match p2depth.get(&(p, x)) {
+                Some(val) => (*val).1,
+                None => 0,
+            });
+            if (depth_stat.clone().max().unwrap() >= min_depth)
+                & (depth_stat.clone().sum::<u32>() >= mean_depth * n_samples as u32)
+            {
                 let val = rec_list.iter().map(|x| &x[1]).join("\t");
-
                 output_report += &format!(
                     "{}\t{}\t{}\t{}\t{}\n",
                     chrom,
@@ -333,15 +327,13 @@ fn parse_region(
                 );
             }
         } else {
-            let passed_filter = (0..n_samples)
-                .map(|x| match p2depth.get(&(p, x)) {
-                    Some(val) => (*val).0 + (*val).1,
-                    None => 0,
-                })
-                .max()
-                .unwrap()
-                >= min_depth;
-            if passed_filter {
+            let depth_stat = (0..n_samples).map(|x| match p2depth.get(&(p, x)) {
+                Some(val) => (*val).0 + (*val).1,
+                None => 0,
+            });
+            if (depth_stat.clone().max().unwrap() >= min_depth)
+                & (depth_stat.clone().sum::<u32>() >= mean_depth * n_samples as u32)
+            {
                 let val = rec_list.iter().map(|x| &x[0]).join("\t");
                 output_report += &format!("{}\t{}\t{}\t{}\t{}\n", chrom, p + 1, "+/-", r, val);
             }
@@ -358,6 +350,7 @@ pub fn run(
     fasta_path: PathBuf,
     bam_path_list: Vec<PathBuf>,
     min_depth: u32,
+    mean_depth: u32,
     min_qual: u8,
     count_indel: bool,
     without_header: bool,
@@ -423,6 +416,7 @@ pub fn run(
                 &bam_path_list,
                 &handle,
                 min_depth,
+                mean_depth,
                 min_qual,
                 count_indel,
                 ignore_strand,

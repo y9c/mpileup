@@ -43,7 +43,14 @@ struct Base {
         help = "Set min depth for output. Note: anyone of the samples passing the cutoff is ok.",
         default_value = "0"
     )]
-    depth: u32,
+    min_depth: u32,
+    #[clap(
+        short = 'm',
+        long = "mean-depth",
+        help = "Set min cutoff of mean depth for output",
+        default_value = "0"
+    )]
+    mean_depth: u32,
     #[clap(
         short = 'q',
         long = "min-qual",
@@ -119,7 +126,8 @@ fn main() {
                 o.bed,
                 o.fa,
                 o.bam,
-                o.depth,
+                o.min_depth,
+                o.mean_depth,
                 o.qual,
                 o.indel,
                 o.headless,
