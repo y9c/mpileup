@@ -90,6 +90,13 @@ struct Base {
         help = "Start the job in multiple threads"
     )]
     njobs: usize,
+    #[clap(
+        short = 'l',
+        long = "--log-type",
+        default_value = "0",
+        help = "Log type. 0: no log; 1: spans; 2: progress bar"
+    )]
+    logtype: u8,
 }
 
 #[derive(Parser)]
@@ -135,6 +142,7 @@ fn main() {
                 o.bystrand,
                 o.chunk,
                 o.njobs,
+                o.logtype,
             );
         }
         SubCommand::Count(o) => {
