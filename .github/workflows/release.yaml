@@ -16,8 +16,7 @@ jobs:
 
       - name: Prepare deps
         run: >-
-          sudo apt-get -y upgrade && sudo apt-get -y update
-          sudo apt-get -y install gcc pkg-config libssl-dev openssl
+          sudo apt-get update && sudo apt-get -y install gcc pkg-config libssl-dev openssl
 
       - name: Compile and release
         uses: rust-build/rust-build.action@v1.3.2
