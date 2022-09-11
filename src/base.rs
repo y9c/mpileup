@@ -6,6 +6,7 @@ use rust_htslib::faidx;
 use serde::Deserialize;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::io::Write;
 use std::path::PathBuf;
 
 #[derive(Deserialize, Debug)]
@@ -57,12 +58,13 @@ fn parse_region(
     dna_bases: &Vec<u8>,
     fasta_path: &PathBuf,
     bam_path_list: &Vec<PathBuf>,
+    mut ouput_handle: &std::io::Stdout,
     min_depth: u32,
     min_qual: u8,
     count_indel: bool,
     ignore_strand: bool,
     by_strand: bool,
-) {
+) -> String {
     let mut p2depth: HashMap<(u32, usize), (u32, u32)> = HashMap::new();
     let mut p2base: HashMap<(u32, usize), (Vec<usize>, Vec<usize>)> = HashMap::new();
     let mut p2ins: HashMap<(u32, usize), (Vec<u32>, Vec<u32>)> = HashMap::new();
@@ -204,6 +206,7 @@ fn parse_region(
         .fetch_seq_string(&chrom, start as usize, (end - 1) as usize)
         .unwrap();
 
+    let mut output_report: String = "".to_string();
     for p in start..end {
         let rec_list = (0..bam_path_list.len())
             .map(|x| {
@@ -292,7 +295,7 @@ fn parse_region(
                 >= min_depth;
             if passed_filter {
                 let val = rec_list.iter().map(|x| &x[0]).join("\t");
-                println!("{}\t{}\t{}\t{}\t{}", chrom, p + 1, '.', r, val);
+                output_report += &format!("{}\t{}\t{}\t{}\t{}\n", chrom, p + 1, '.', r, val);
             }
         } else if by_strand {
             let passed_filter = (0..bam_path_list.len())
@@ -305,7 +308,7 @@ fn parse_region(
                 >= min_depth;
             if passed_filter {
                 let val = rec_list.iter().map(|x| &x[0]).join("\t");
-                println!("{}\t{}\t{}\t{}\t{}", chrom, p + 1, "+", r, val);
+                output_report += &format!("{}\t{}\t{}\t{}\t{}\n", chrom, p + 1, "+", r, val);
             }
             let passed_filter = (0..bam_path_list.len())
                 .map(|x| match p2depth.get(&(p, x)) {
@@ -317,8 +320,9 @@ fn parse_region(
                 >= min_depth;
             if passed_filter {
                 let val = rec_list.iter().map(|x| &x[1]).join("\t");
-                println!(
-                    "{}\t{}\t{}\t{}\t{}",
+
+                output_report += &format!(
+                    "{}\t{}\t{}\t{}\t{}\n",
                     chrom,
                     p + 1,
                     "-",
@@ -337,11 +341,16 @@ fn parse_region(
                 >= min_depth;
             if passed_filter {
                 let val = rec_list.iter().map(|x| &x[0]).join("\t");
-                println!("{}\t{}\t{}\t{}\t{}", chrom, p + 1, "+/-", r, val);
+                output_report += &format!("{}\t{}\t{}\t{}\t{}\n", chrom, p + 1, "+/-", r, val);
             }
         }
     }
+
+    //print!("{}", output_report);
+    _ = write!(ouput_handle, "{}", output_report);
+    return "".to_string();
 }
+
 pub fn run(
     region_path: PathBuf,
     fasta_path: PathBuf,
@@ -394,6 +403,7 @@ pub fn run(
         spans.push((chrom.clone(), splited_start, end));
     }
 
+    let handle = std::io::stdout();
     // run in parallel
     build_thread_pool(n_jobs);
     let _chunks: _ = spans
@@ -407,6 +417,7 @@ pub fn run(
                 dna_bases,
                 &fasta_path,
                 &bam_path_list,
+                &handle,
                 min_depth,
                 min_qual,
                 count_indel,
