@@ -5,4 +5,4 @@
 #
 # Created: 2022-09-10 22:13
 
-sudo apt-get update && sudo apt-get -y install gcc pkg-config libssl-dev openssl make cmake
+apt-get update && apt-get -y install gcc pkg-config libssl-dev openssl make cmake
