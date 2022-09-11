@@ -1,6 +1,7 @@
 use csv;
+use indicatif::ParallelProgressIterator;
 use itertools::Itertools;
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rust_htslib::bam::{self, Read};
 use rust_htslib::faidx;
 use serde::Deserialize;
@@ -70,6 +71,7 @@ fn parse_region(
     let mut p2ins: HashMap<(u32, usize), (Vec<u32>, Vec<u32>)> = HashMap::new();
     let mut p2del: HashMap<(u32, usize), (Vec<u32>, Vec<u32>)> = HashMap::new();
 
+    let n_samples = bam_path_list.len();
     for (i, bam_path) in bam_path_list.iter().enumerate() {
         // read bam file
         let mut bam_reader = bam::IndexedReader::from_path(&bam_path).unwrap();
@@ -208,7 +210,7 @@ fn parse_region(
 
     let mut output_report: String = "".to_string();
     for p in start..end {
-        let rec_list = (0..bam_path_list.len())
+        let rec_list = (0..n_samples)
             .map(|x| {
                 if ignore_strand {
                     let mut rec = vec![match p2base.get(&(p, x)) {
@@ -285,7 +287,7 @@ fn parse_region(
         let r = &fa_string[(p - start) as usize..(p - start + 1) as usize];
         if ignore_strand {
             // filter depth
-            let passed_filter = (0..bam_path_list.len())
+            let passed_filter = (0..n_samples)
                 .map(|x| match p2depth.get(&(p, x)) {
                     Some(val) => (*val).0 + (*val).1,
                     None => 0,
@@ -298,7 +300,7 @@ fn parse_region(
                 output_report += &format!("{}\t{}\t{}\t{}\t{}\n", chrom, p + 1, '.', r, val);
             }
         } else if by_strand {
-            let passed_filter = (0..bam_path_list.len())
+            let passed_filter = (0..n_samples)
                 .map(|x| match p2depth.get(&(p, x)) {
                     Some(val) => (*val).0,
                     None => 0,
@@ -310,7 +312,7 @@ fn parse_region(
                 let val = rec_list.iter().map(|x| &x[0]).join("\t");
                 output_report += &format!("{}\t{}\t{}\t{}\t{}\n", chrom, p + 1, "+", r, val);
             }
-            let passed_filter = (0..bam_path_list.len())
+            let passed_filter = (0..n_samples)
                 .map(|x| match p2depth.get(&(p, x)) {
                     Some(val) => (*val).1,
                     None => 0,
@@ -331,7 +333,7 @@ fn parse_region(
                 );
             }
         } else {
-            let passed_filter = (0..bam_path_list.len())
+            let passed_filter = (0..n_samples)
                 .map(|x| match p2depth.get(&(p, x)) {
                     Some(val) => (*val).0 + (*val).1,
                     None => 0,
@@ -410,12 +412,12 @@ pub fn run(
     build_thread_pool(n_jobs);
     let _chunks: _ = spans
         .par_iter()
-        .cloned()
+        .progress_count(spans.len() as u64)
         .map(|(c, s, e)| {
             parse_region(
-                c,
-                s,
-                e,
+                c.to_string(),
+                *s,
+                *e,
                 dna_bases,
                 &fasta_path,
                 &bam_path_list,
