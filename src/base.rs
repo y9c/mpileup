@@ -380,12 +380,15 @@ pub fn run(
         .from_path(&region_path)
         .unwrap();
 
+    // prepare output
+    let handle = std::io::stdout();
+
     if !without_header {
-        print!("Chrom\tPos\tStrand\tRef");
+        let mut header_line = "Chrom\tPos\tStrand\tRef".to_string();
         for pth in &bam_path_list {
-            print!("\t{}", pth.to_str().unwrap().to_string())
+            header_line += &format!("\t{}", pth.to_str().unwrap().to_string())
         }
-        print!("\n");
+        _ = write!(&handle, "{}\n", header_line);
     }
     // Read through all records in region.
     let mut spans: Vec<(String, u32, u32)> = Vec::new();
@@ -403,7 +406,6 @@ pub fn run(
         spans.push((chrom.clone(), splited_start, end));
     }
 
-    let handle = std::io::stdout();
     // run in parallel
     build_thread_pool(n_jobs);
     let _chunks: _ = spans
