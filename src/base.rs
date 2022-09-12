@@ -68,12 +68,13 @@ fn parse_region(
     ignore_strand: bool,
     by_strand: bool,
 ) -> String {
+    let n_samples = bam_path_list.len();
+
     let mut p2depth: HashMap<(u32, usize), (u32, u32)> = HashMap::new();
     let mut p2base: HashMap<(u32, usize), (Vec<usize>, Vec<usize>)> = HashMap::new();
     let mut p2ins: HashMap<(u32, usize), (Vec<u32>, Vec<u32>)> = HashMap::new();
     let mut p2del: HashMap<(u32, usize), (Vec<u32>, Vec<u32>)> = HashMap::new();
 
-    let n_samples = bam_path_list.len();
     for (i, bam_path) in bam_path_list.iter().enumerate() {
         // read bam file (SLOW STEP)
         let mut bam_reader = bam::IndexedReader::from_path(&bam_path).unwrap();
