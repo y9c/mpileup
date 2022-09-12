@@ -211,7 +211,7 @@ fn parse_region(
         .unwrap();
 
     let mut output_report: String = "".to_string();
-    for p in start..std::cmp::min(end, fa_string.len() as u32) {
+    for p in start..std::cmp::min(end, start + fa_string.len() as u32) {
         let rec_list = (0..n_samples)
             .map(|x| {
                 if ignore_strand {
@@ -341,7 +341,6 @@ fn parse_region(
         }
     }
 
-    //print!("{}", output_report);
     _ = write!(ouput_handle, "{}", output_report);
     return "".to_string();
 }
@@ -432,10 +431,10 @@ pub fn run(
     if log_type != 2 {
         spans
             .par_iter()
-            .map(|pos| {
+            .map(|s| {
                 parse_region(
-                    pos,
-                    &chrom_map[&pos.chrom],
+                    s,
+                    &chrom_map[&s.chrom],
                     dna_bases,
                     &fasta_path,
                     &bam_path_list,
@@ -447,7 +446,7 @@ pub fn run(
                     ignore_strand,
                     by_strand,
                 );
-                format!("{}:{}-{}", pos.chrom, pos.start, pos.end)
+                format!("{}:{}-{}", s.chrom, s.start, s.end)
             })
             .inspect(|x| {
                 if log_type == 1 {
@@ -459,10 +458,10 @@ pub fn run(
         spans
             .par_iter()
             .progress_count(spans.len() as u64)
-            .map(|pos| {
+            .map(|s| {
                 parse_region(
-                    pos,
-                    &chrom_map[&pos.chrom],
+                    s,
+                    &chrom_map[&s.chrom],
                     dna_bases,
                     &fasta_path,
                     &bam_path_list,
@@ -474,7 +473,7 @@ pub fn run(
                     ignore_strand,
                     by_strand,
                 );
-                format!("{}:{}-{}", pos.chrom, pos.start, pos.end)
+                format!("{}:{}-{}", s.chrom, s.start, s.end)
             })
             .collect::<String>();
     }
