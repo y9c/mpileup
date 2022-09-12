@@ -53,9 +53,7 @@ fn build_thread_pool(j: usize) {
 }
 
 fn parse_region(
-    chrom: String,
-    start: u32,
-    end: u32,
+    detection_span: &PosRecord,
     chrom_tids: &Vec<u32>,
     dna_bases: &Vec<u8>,
     fasta_path: &PathBuf,
@@ -74,6 +72,9 @@ fn parse_region(
     let mut p2del: HashMap<(u32, usize), (Vec<u32>, Vec<u32>)> = HashMap::new();
 
     let n_samples = bam_path_list.len();
+    let chrom = &detection_span.chrom;
+    let start = *(&detection_span.start);
+    let end = *(&detection_span.end);
     for (i, bam_path) in bam_path_list.iter().enumerate() {
         // read bam file (SLOW STEP)
         let mut bam_reader = bam::IndexedReader::from_path(&bam_path).unwrap();
@@ -387,7 +388,8 @@ pub fn run(
         _ = write!(&handle, "{}\n", header_line);
     }
     // Read through all records in region.
-    let mut spans: Vec<(String, u32, u32)> = Vec::new();
+    //let mut spans: Vec<(String, u32, u32)> = Vec::new();
+    let mut spans: Vec<PosRecord> = Vec::new();
 
     let mut chrom_set: HashSet<String> = HashSet::new();
     for (_i, record) in pos_reader.deserialize().enumerate() {
@@ -399,10 +401,18 @@ pub fn run(
         // split into chunks
         let mut splited_start = start;
         for _ in 1..(end - start) / chunk_size {
-            spans.push((chrom.clone(), splited_start, splited_start + chunk_size));
+            spans.push(PosRecord {
+                chrom: chrom.clone(),
+                start: splited_start,
+                end: splited_start + chunk_size,
+            });
             splited_start = splited_start + chunk_size;
         }
-        spans.push((chrom.clone(), splited_start, end));
+        spans.push(PosRecord {
+            chrom: chrom.clone(),
+            start: splited_start,
+            end,
+        });
     }
 
     // convert chromosome name into tid (can improve speed)
@@ -422,12 +432,10 @@ pub fn run(
     if log_type != 2 {
         spans
             .par_iter()
-            .map(|(c, s, e)| {
+            .map(|pos| {
                 parse_region(
-                    c.to_string(),
-                    *s,
-                    *e,
-                    &chrom_map[c],
+                    pos,
+                    &chrom_map[&pos.chrom],
                     dna_bases,
                     &fasta_path,
                     &bam_path_list,
@@ -439,7 +447,7 @@ pub fn run(
                     ignore_strand,
                     by_strand,
                 );
-                format!("{}:{}-{}", c, s, e)
+                format!("{}:{}-{}", pos.chrom, pos.start, pos.end)
             })
             .inspect(|x| {
                 if log_type == 1 {
@@ -451,12 +459,10 @@ pub fn run(
         spans
             .par_iter()
             .progress_count(spans.len() as u64)
-            .map(|(c, s, e)| {
+            .map(|pos| {
                 parse_region(
-                    c.to_string(),
-                    *s,
-                    *e,
-                    &chrom_map[c],
+                    pos,
+                    &chrom_map[&pos.chrom],
                     dna_bases,
                     &fasta_path,
                     &bam_path_list,
@@ -468,7 +474,7 @@ pub fn run(
                     ignore_strand,
                     by_strand,
                 );
-                format!("{}:{}-{}", c, s, e)
+                format!("{}:{}-{}", pos.chrom, pos.start, pos.end)
             })
             .collect::<String>();
     }
