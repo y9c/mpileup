@@ -210,7 +210,7 @@ fn parse_region(
         .unwrap();
 
     let mut output_report: String = "".to_string();
-    for p in start..std::cmp::min(end, fa_string.len() as u32) {
+    for p in start..std::cmp::min(end, start + fa_string.len() as u32) {
         let rec_list = (0..n_samples)
             .map(|x| {
                 if ignore_strand {
@@ -340,7 +340,6 @@ fn parse_region(
         }
     }
 
-    //print!("{}", output_report);
     _ = write!(ouput_handle, "{}", output_report);
     return "".to_string();
 }
