@@ -6,7 +6,7 @@ use rust_htslib::bam::{self, Read};
 use rust_htslib::faidx;
 use serde::Deserialize;
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -56,6 +56,7 @@ fn parse_region(
     chrom: String,
     start: u32,
     end: u32,
+    chrom_tids: &Vec<u32>,
     dna_bases: &Vec<u8>,
     fasta_path: &PathBuf,
     bam_path_list: &Vec<PathBuf>,
@@ -74,11 +75,10 @@ fn parse_region(
 
     let n_samples = bam_path_list.len();
     for (i, bam_path) in bam_path_list.iter().enumerate() {
-        // read bam file
+        // read bam file (SLOW STEP)
         let mut bam_reader = bam::IndexedReader::from_path(&bam_path).unwrap();
-        let bam_header = bam_reader.header().clone();
 
-        let tid = bam_header.tid(chrom.as_bytes()).unwrap();
+        let tid = chrom_tids[i];
 
         bam_reader.fetch((tid, start, end)).unwrap();
         // pileup over all covered sites
@@ -210,7 +210,7 @@ fn parse_region(
         .unwrap();
 
     let mut output_report: String = "".to_string();
-    for p in start..end {
+    for p in start..std::cmp::min(end, fa_string.len() as u32) {
         let rec_list = (0..n_samples)
             .map(|x| {
                 if ignore_strand {
@@ -388,11 +388,14 @@ pub fn run(
     }
     // Read through all records in region.
     let mut spans: Vec<(String, u32, u32)> = Vec::new();
+
+    let mut chrom_set: HashSet<String> = HashSet::new();
     for (_i, record) in pos_reader.deserialize().enumerate() {
         let record: PosRecord = record.unwrap();
         let chrom: String = record.chrom.clone();
         let start = record.start as u32;
         let end = record.end as u32;
+        chrom_set.insert(chrom.clone());
         // split into chunks
         let mut splited_start = start;
         for _ in 1..(end - start) / chunk_size {
@@ -402,6 +405,18 @@ pub fn run(
         spans.push((chrom.clone(), splited_start, end));
     }
 
+    // convert chromosome name into tid (can improve speed)
+    let mut chrom_map: HashMap<String, Vec<u32>> = HashMap::new();
+    for bam_path in bam_path_list.iter() {
+        let bam_reader = bam::IndexedReader::from_path(&bam_path).unwrap();
+        let bam_header = bam_reader.header().clone();
+        for chrom in &chrom_set {
+            chrom_map
+                .entry((*chrom).to_string())
+                .or_insert(Vec::new())
+                .push(bam_header.tid(chrom.as_bytes()).unwrap());
+        }
+    }
     // run in parallel
     build_thread_pool(n_jobs);
     if log_type == 1 {
@@ -412,6 +427,7 @@ pub fn run(
                     c.to_string(),
                     *s,
                     *e,
+                    &chrom_map[c],
                     dna_bases,
                     &fasta_path,
                     &bam_path_list,
@@ -436,6 +452,7 @@ pub fn run(
                     c.to_string(),
                     *s,
                     *e,
+                    &chrom_map[c],
                     dna_bases,
                     &fasta_path,
                     &bam_path_list,
@@ -458,6 +475,7 @@ pub fn run(
                     c.to_string(),
                     *s,
                     *e,
+                    &chrom_map[c],
                     dna_bases,
                     &fasta_path,
                     &bam_path_list,
