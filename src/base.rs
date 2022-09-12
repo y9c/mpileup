@@ -419,7 +419,7 @@ pub fn run(
     }
     // run in parallel
     build_thread_pool(n_jobs);
-    if log_type == 1 {
+    if log_type != 2 {
         spans
             .par_iter()
             .map(|(c, s, e)| {
@@ -441,35 +441,16 @@ pub fn run(
                 );
                 format!("{}:{}-{}", c, s, e)
             })
-            .inspect(|x| eprintln!("{}", x))
-            .collect::<String>();
-    } else if log_type == 2 {
-        spans
-            .par_iter()
-            .progress_count(spans.len() as u64)
-            .map(|(c, s, e)| {
-                parse_region(
-                    c.to_string(),
-                    *s,
-                    *e,
-                    &chrom_map[c],
-                    dna_bases,
-                    &fasta_path,
-                    &bam_path_list,
-                    &handle,
-                    min_depth,
-                    mean_depth,
-                    min_qual,
-                    count_indel,
-                    ignore_strand,
-                    by_strand,
-                );
-                format!("{}:{}-{}", c, s, e)
+            .inspect(|x| {
+                if log_type == 1 {
+                    eprintln!("{}", x)
+                }
             })
             .collect::<String>();
     } else {
         spans
             .par_iter()
+            .progress_count(spans.len() as u64)
             .map(|(c, s, e)| {
                 parse_region(
                     c.to_string(),

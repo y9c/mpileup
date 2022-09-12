@@ -513,7 +513,7 @@ dependencies = [
 
 [[package]]
 name = "mpileup"
-version = "0.0.25"
+version = "0.0.26"
 dependencies = [
  "chrono",
  "clap",
